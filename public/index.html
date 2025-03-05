@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Chat</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { max-width: 500px; margin: auto; padding: 10px; border: 1px solid #ccc; }
+        .message { padding: 5px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <h2>Twitch Chat</h2>
+    <div id="chat"></div>
+
+    <script>
+        const socket = io();
+        const chatDiv = document.getElementById("chat");
+
+        socket.on("chatMessage", (data) => {
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("message");
+            messageElement.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
+            chatDiv.appendChild(messageElement);
+        });
+    </script>
+
+</body>
+</html>
