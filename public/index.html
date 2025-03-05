@@ -353,6 +353,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite alternate;
         }
         
         .current-picking-team {
@@ -362,9 +364,12 @@
         
         .picking-timer {
             background-color: var(--dark-green);
-            padding: 5px 10px;
+            padding: 5px 15px;
             border-radius: 4px;
             font-weight: bold;
+            font-size: 20px;
+            min-width: 50px;
+            text-align: center;
         }
         
         .grid-map {
@@ -388,6 +393,8 @@
             transition: all 0.3s ease;
             animation: cellAppear 0.5s ease forwards;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background-size: cover;
+            background-position: center;
         }
         
         .grid-cell:hover:not(.water):not(.claimed) {
@@ -397,24 +404,29 @@
         
         .grid-cell.water {
             background-color: #3498db;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,10 Q50,20 70,10 T100,10 V100 H0 V10 Q10,20 30,10" fill="%232980b9" /></svg>');
             cursor: not-allowed;
         }
         
         .grid-cell.land {
             background-color: #2ecc71;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%2327ae60" /><circle cx="25" cy="25" r="3" fill="%2327ae60" /><circle cx="75" cy="75" r="3" fill="%2327ae60" /><circle cx="75" cy="25" r="3" fill="%2327ae60" /><circle cx="25" cy="75" r="3" fill="%2327ae60" /><circle cx="50" cy="50" r="3" fill="%2327ae60" /></svg>');
         }
         
         .grid-cell.mountain {
             background-color: #95a5a6;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><polygon points="50,20 80,80 20,80" fill="%237f8c8d" /></svg>');
         }
         
         .grid-cell.desert {
             background-color: #f1c40f;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f39c12" /><circle cx="25" cy="25" r="2" fill="%23e67e22" /><circle cx="75" cy="75" r="2" fill="%23e67e22" /><circle cx="75" cy="25" r="2" fill="%23e67e22" /><circle cx="25" cy="75" r="2" fill="%23e67e22" /><circle cx="50" cy="50" r="2" fill="%23e67e22" /></svg>');
         }
         
         .grid-cell.claimed {
             cursor: not-allowed;
             border: 3px solid;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
         
         .cell-coords {
@@ -436,8 +448,7 @@
             position: absolute;
             bottom: 5px;
             right: 5px;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 20px;
             background-color: rgba(0, 0, 0, 0.5);
             color: white;
             padding: 2px 5px;
@@ -452,11 +463,11 @@
             font-size: 14px;
             font-weight: bold;
             text-align: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
             padding: 5px;
             border-radius: 4px;
             width: 80%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 2px solid;
         }
         
         /* Animation for cell appearance */
@@ -469,6 +480,64 @@
                 opacity: 1;
                 transform: scale(1);
             }
+        }
+        
+        /* Add a notification area for claim messages */
+        .claim-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            animation: fadeInOut 4s forwards;
+            max-width: 80%;
+            text-align: center;
+        }
+        
+        .claim-notification.error {
+            border-left: 5px solid #e74c3c;
+        }
+        
+        .claim-notification.success {
+            border-left: 5px solid #2ecc71;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            80% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        
+        /* Update team card style to add border matching team color */
+        .team-card {
+            background-color: var(--medium-green);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.5s ease;
+            border-left: 5px solid var(--accent-brown);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .team-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            pointer-events: none;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -511,7 +580,7 @@
                 <div class="map-instructions">
                     <p>Team leaders: Type <span class="command-name">!claim A1</span> to claim your starting position.</p>
                     <p>Example: <span class="command-name">!claim C4</span> (where C is the column and 4 is the row)</p>
-                    <p>You cannot start on water tiles. You have 10 seconds to pick or a position will be randomly assigned.</p>
+                    <p>You cannot start on water tiles. You have 15 seconds to pick or a position will be randomly assigned.</p>
                 </div>
                 <div id="gridMap" class="grid-map">
                     <!-- Grid cells will be generated here -->
@@ -879,6 +948,14 @@
                 // Add a slight delay for staggered animation
                 setTimeout(() => {
                     teamsContainer.appendChild(card);
+                    
+                    // Apply the border color to the card
+                    if (team.color) {
+                        // Add a border around the entire card with the team color
+                        card.style.border = `2px solid ${team.color}`;
+                        // Keep the left border thicker
+                        card.style.borderLeftWidth = "5px";
+                    }
                 }, index * 100);
             });
             
@@ -999,60 +1076,115 @@
             // If we don't have map data yet, don't do anything
             if (!gameState.map) return;
             
-            // Clear the grid
-            gridMap.innerHTML = '';
-            
-            // Generate the grid
-            for (let row = 0; row < gameState.map.size; row++) {
-                for (let col = 0; col < gameState.map.size; col++) {
-                    const cell = gameState.map.grid[row][col];
-                    const cellElement = document.createElement('div');
-                    cellElement.className = `grid-cell ${cell.terrain}`;
-                    cellElement.id = `cell-${row}-${col}`;
-                    cellElement.style.animationDelay = `${(row * gameState.map.size + col) * 0.02}s`;
-                    
-                    // Convert to A1-F6 format
-                    const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
-                    const rowNumber = row + 1;
-                    const coordLabel = `${colLetter}${rowNumber}`;
-                    
-                    // Add coordinates
-                    const coordsElement = document.createElement('div');
-                    coordsElement.className = 'cell-coords';
-                    coordsElement.textContent = coordLabel;
-                    cellElement.appendChild(coordsElement);
-                    
-                    // Add terrain type
-                    const terrainElement = document.createElement('div');
-                    terrainElement.className = 'cell-terrain';
-                    terrainElement.textContent = capitalizeFirstLetter(cell.terrain);
-                    cellElement.appendChild(terrainElement);
-                    
-                    // Add resource if present
-                    if (cell.resource) {
-                        const resourceElement = document.createElement('div');
-                        resourceElement.className = 'cell-resource';
-                        resourceElement.textContent = capitalizeFirstLetter(cell.resource);
-                        cellElement.appendChild(resourceElement);
-                    }
-                    
-                    // If cell is claimed, show owner
-                    if (cell.owner) {
-                        cellElement.classList.add('claimed');
+            // Check if the map already exists
+            if (gridMap.children.length === 0) {
+                // Generate the grid
+                for (let row = 0; row < gameState.map.size; row++) {
+                    for (let col = 0; col < gameState.map.size; col++) {
+                        const cell = gameState.map.grid[row][col];
+                        const cellElement = document.createElement('div');
+                        cellElement.className = `grid-cell ${cell.terrain}`;
+                        cellElement.id = `cell-${row}-${col}`;
+                        cellElement.style.animationDelay = `${(row * gameState.map.size + col) * 0.02}s`;
                         
-                        // Find the team that owns this cell
-                        const ownerTeam = gameState.teamsData.find(team => team.leader === cell.owner);
-                        if (ownerTeam) {
-                            cellElement.style.borderColor = ownerTeam.color;
+                        // Convert to A1-F6 format
+                        const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
+                        const rowNumber = row + 1;
+                        const coordLabel = `${colLetter}${rowNumber}`;
+                        
+                        // Add coordinates
+                        const coordsElement = document.createElement('div');
+                        coordsElement.className = 'cell-coords';
+                        coordsElement.textContent = coordLabel;
+                        cellElement.appendChild(coordsElement);
+                        
+                        // Add resource if present
+                        if (cell.resource) {
+                            const resourceElement = document.createElement('div');
+                            resourceElement.className = 'cell-resource';
                             
-                            const ownerElement = document.createElement('div');
-                            ownerElement.className = 'cell-owner';
-                            ownerElement.textContent = ownerTeam.teamName;
-                            cellElement.appendChild(ownerElement);
+                            // Use emoji based on resource type
+                            let resourceEmoji = '';
+                            switch(cell.resource) {
+                                case 'wood':
+                                    resourceEmoji = '🌲';
+                                    break;
+                                case 'iron':
+                                    resourceEmoji = '⛏️';
+                                    break;
+                                case 'clay':
+                                    resourceEmoji = '🧱';
+                                    break;
+                                default:
+                                    resourceEmoji = '📦';
+                            }
+                            
+                            resourceElement.textContent = resourceEmoji;
+                            cellElement.appendChild(resourceElement);
+                        }
+                        
+                        // If cell is claimed, show owner
+                        if (cell.owner) {
+                            cellElement.classList.add('claimed');
+                            
+                            // Find the team that owns this cell
+                            const ownerTeam = gameState.teamsData.find(team => team.leader === cell.owner);
+                            if (ownerTeam) {
+                                cellElement.style.borderColor = ownerTeam.color;
+                                
+                                const ownerElement = document.createElement('div');
+                                ownerElement.className = 'cell-owner';
+                                ownerElement.textContent = ownerTeam.teamName;
+                                ownerElement.style.backgroundColor = ownerTeam.color;
+                                ownerElement.style.color = getContrastColor(ownerTeam.color);
+                                cellElement.appendChild(ownerElement);
+                            }
+                        }
+                        
+                        gridMap.appendChild(cellElement);
+                    }
+                }
+            } else {
+                // Just update claimed cells
+                for (let row = 0; row < gameState.map.size; row++) {
+                    for (let col = 0; col < gameState.map.size; col++) {
+                        const cell = gameState.map.grid[row][col];
+                        const cellElement = document.getElementById(`cell-${row}-${col}`);
+                        
+                        if (!cellElement) continue;
+                        
+                        // Update claimed status
+                        if (cell.owner) {
+                            cellElement.classList.add('claimed');
+                            
+                            // Find the team that owns this cell
+                            const ownerTeam = gameState.teamsData.find(team => team.leader === cell.owner);
+                            if (ownerTeam) {
+                                cellElement.style.borderColor = ownerTeam.color;
+                                
+                                // Add or update owner element
+                                let ownerElement = cellElement.querySelector('.cell-owner');
+                                if (!ownerElement) {
+                                    ownerElement = document.createElement('div');
+                                    ownerElement.className = 'cell-owner';
+                                    cellElement.appendChild(ownerElement);
+                                }
+                                
+                                ownerElement.textContent = ownerTeam.teamName;
+                                ownerElement.style.backgroundColor = ownerTeam.color;
+                                ownerElement.style.color = getContrastColor(ownerTeam.color);
+                            }
+                        } else {
+                            cellElement.classList.remove('claimed');
+                            cellElement.style.borderColor = '';
+                            
+                            // Remove owner element if exists
+                            const ownerElement = cellElement.querySelector('.cell-owner');
+                            if (ownerElement) {
+                                ownerElement.remove();
+                            }
                         }
                     }
-                    
-                    gridMap.appendChild(cellElement);
                 }
             }
             
@@ -1121,7 +1253,11 @@
                         ownerElement.className = 'cell-owner';
                         cellElement.appendChild(ownerElement);
                     }
+                    
                     ownerElement.textContent = data.teamName;
+                    ownerElement.style.backgroundColor = data.color;
+                    ownerElement.style.color = getContrastColor(data.color);
+                    ownerElement.style.borderColor = data.color;
                 }
             }
         });
@@ -1200,6 +1336,63 @@
             };
             updateUI();
         });
+        
+        // Add event listeners for claim errors and success messages
+        socket.on("claimError", (data) => {
+            console.log(`Claim error: ${data.message}`);
+            showNotification(data.message, "error");
+        });
+        
+        socket.on("claimSuccess", (data) => {
+            console.log(`Claim success: ${data.message}`);
+            showNotification(data.message, "success");
+        });
+        
+        // Function to show notifications
+        function showNotification(message, type) {
+            // Remove any existing notifications
+            const existingNotifications = document.querySelectorAll('.claim-notification');
+            existingNotifications.forEach(notification => {
+                notification.remove();
+            });
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `claim-notification ${type}`;
+            notification.textContent = message;
+            
+            // Add to body
+            document.body.appendChild(notification);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+        
+        // Helper function to determine text color based on background color
+        function getContrastColor(hexColor) {
+            // If no color provided, return white
+            if (!hexColor) return '#ffffff';
+            
+            // Convert hex to RGB
+            let r, g, b;
+            if (hexColor.length === 4) {
+                r = parseInt(hexColor[1] + hexColor[1], 16);
+                g = parseInt(hexColor[2] + hexColor[2], 16);
+                b = parseInt(hexColor[3] + hexColor[3], 16);
+            } else {
+                r = parseInt(hexColor.substr(1, 2), 16);
+                g = parseInt(hexColor.substr(3, 2), 16);
+                b = parseInt(hexColor.substr(5, 2), 16);
+            }
+            
+            // Calculate luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // Return white for dark colors, black for light colors
+            return luminance > 0.5 ? '#000000' : '#ffffff';
+        }
     </script>
 </body>
 </html>

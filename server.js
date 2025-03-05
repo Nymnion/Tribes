@@ -522,8 +522,8 @@ function generateMap() {
     if (gameState.map.pickingOrder.length > 0) {
       gameState.map.currentTeamPicking = gameState.map.pickingOrder[0];
       
-      // Set timer for 10 seconds
-      gameState.map.pickingTimeEnd = Date.now() + 10000;
+      // Set timer for 15 seconds
+      gameState.map.pickingTimeEnd = Date.now() + 15000;
       
       // Set map as generated
       gameState.mapGenerated = true;
@@ -573,13 +573,13 @@ function startPickingTimer() {
       clearTimeout(gameState.pickingTimerId);
     }
     
-    console.log(`Starting 10-second timer for team ${gameState.map.currentTeamPicking}`);
+    console.log(`Starting 15-second timer for team ${gameState.map.currentTeamPicking}`);
     
-    // Set a timeout for 10 seconds
+    // Set a timeout for 15 seconds
     gameState.pickingTimerId = setTimeout(() => {
       // If time runs out, assign a random valid starting position
       assignRandomStartingPosition();
-    }, 10000);
+    }, 15000);
   } catch (error) {
     console.error(`Error in startPickingTimer: ${error.message}`);
     console.error(error.stack);
@@ -658,6 +658,17 @@ function claimCell(row, col, team) {
     // Make sure the cell exists and is not water or already claimed
     if (!gameState.map.grid[row] || !gameState.map.grid[row][col]) {
       console.log(`Cell at ${row},${col} does not exist`);
+      
+      // Convert coordinates to A1 format for error message
+      const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
+      const rowNumber = row + 1;
+      
+      // Send error message to client
+      io.emit("claimError", {
+        message: `Invalid coordinates: ${colLetter}${rowNumber}`,
+        leader: team.leader
+      });
+      
       return false;
     }
     
@@ -665,11 +676,37 @@ function claimCell(row, col, team) {
     
     if (cell.terrain === "water") {
       console.log(`Cell at ${row},${col} is water and cannot be claimed`);
+      
+      // Convert coordinates to A1 format for error message
+      const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
+      const rowNumber = row + 1;
+      
+      // Send error message to client
+      io.emit("claimError", {
+        message: `${colLetter}${rowNumber} is water and cannot be claimed. Please pick a different tile.`,
+        leader: team.leader
+      });
+      
       return false;
     }
     
     if (cell.owner) {
       console.log(`Cell at ${row},${col} is already claimed by ${cell.owner}`);
+      
+      // Convert coordinates to A1 format for error message
+      const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
+      const rowNumber = row + 1;
+      
+      // Find the team that owns this cell
+      const ownerTeam = gameState.teamsData.find(t => t.leader === cell.owner);
+      const ownerTeamName = ownerTeam ? ownerTeam.teamName : "another team";
+      
+      // Send error message to client
+      io.emit("claimError", {
+        message: `${colLetter}${rowNumber} is already claimed by ${ownerTeamName}. Please pick a different tile.`,
+        leader: team.leader
+      });
+      
       return false;
     }
     
@@ -688,6 +725,14 @@ function claimCell(row, col, team) {
       owner: team.leader,
       teamName: team.teamName,
       color: team.color
+    });
+    
+    // Send success message
+    io.emit("claimSuccess", {
+      message: `${team.leader} has claimed ${colLetter}${rowNumber} for ${team.teamName}!`,
+      leader: team.leader,
+      teamName: team.teamName,
+      coordinates: `${colLetter}${rowNumber}`
     });
     
     return true;
@@ -716,7 +761,7 @@ function moveToNextTeam() {
     // If there are more teams to pick, set the next one
     if (gameState.map.pickingOrder.length > 0) {
       gameState.map.currentTeamPicking = gameState.map.pickingOrder[0];
-      gameState.map.pickingTimeEnd = Date.now() + 10000;
+      gameState.map.pickingTimeEnd = Date.now() + 15000;
       
       // Find the team that's currently picking
       const pickingTeam = gameState.teamsData.find(team => 
