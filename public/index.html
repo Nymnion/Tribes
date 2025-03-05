@@ -295,6 +295,39 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        
+        .application-message {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--medium-green);
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: pulse 3s infinite alternate;
+            border-left: 5px solid var(--accent-brown);
+        }
+        
+        .application-message h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: var(--light-cream);
+        }
+        
+        .application-message p {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--light-cream);
+        }
+        
+        .application-message .command-example {
+            font-family: monospace;
+            background-color: var(--dark-green);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: inline-block;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -310,9 +343,11 @@
                 <button id="startElectionBtn" disabled>Start Voting</button>
             </div>
             
-            <h2 class="section-title">Candidates</h2>
-            <div id="candidatesContainer" class="candidates-container">
-                <!-- Candidate cards will be added here -->
+            <div class="candidates-section">
+                <h2 class="section-title">Candidates</h2>
+                <div id="candidatesContainer" class="candidates-container">
+                    <!-- Candidate cards will be added here -->
+                </div>
             </div>
             
             <div class="teams-section">
@@ -342,6 +377,14 @@
                     <span>Vote for a leader by number (during voting phase)</span>
                 </div>
                 <div class="team-name-required pulse">Team name is required and must be unique!</div>
+            </div>
+            
+            <div class="application-message hidden animate__animated animate__fadeIn">
+                <h2>Application Phase</h2>
+                <p>This is your chance to become a team leader!</p>
+                <p>Use the command below to apply with your team name and motto:</p>
+                <div class="command-example">!run TeamName Your Team Motto Here</div>
+                <p>Be creative! The best team names and mottos will attract more votes.</p>
             </div>
         </div>
         
@@ -455,9 +498,31 @@
                 startElectionBtn.classList.remove("animate__infinite");
             }
             
-            // Hide/show team section based on phase
+            // Hide/show sections based on phase
             const teamSection = document.querySelector('.teams-section');
+            const candidatesSection = document.querySelector('.candidates-section');
+            const applicationMessage = document.querySelector('.application-message');
+            
+            // Show application message only during application phase
+            if (gameState.phase === "applications") {
+                if (applicationMessage) {
+                    applicationMessage.classList.remove('hidden');
+                }
+            } else {
+                if (applicationMessage) {
+                    applicationMessage.classList.add('hidden');
+                }
+            }
+            
+            // Hide candidates during idle and application phases
             if (gameState.phase === "idle" || gameState.phase === "applications") {
+                candidatesSection.classList.add('hidden');
+            } else {
+                candidatesSection.classList.remove('hidden');
+            }
+            
+            // Hide teams during application and selection phases
+            if (gameState.phase === "idle" || gameState.phase === "applications" || gameState.phase === "selection") {
                 teamSection.classList.add('hidden');
             } else {
                 teamSection.classList.remove('hidden');
@@ -477,9 +542,14 @@
         function updateCandidatesUI() {
             candidatesContainer.innerHTML = "";
             
-            const candidatesToShow = gameState.phase === "applications" || gameState.phase === "idle" 
-                ? gameState.candidates 
-                : gameState.selectedCandidates;
+            // Don't show candidates during application phase
+            if (gameState.phase === "applications" || gameState.phase === "idle") {
+                return; // Skip displaying candidates during application phase
+            }
+            
+            const candidatesToShow = gameState.phase === "selection" || gameState.phase === "voting" || gameState.phase === "results"
+                ? gameState.selectedCandidates 
+                : gameState.candidates;
             
             candidatesToShow.forEach((candidate, index) => {
                 const card = document.createElement("div");
@@ -519,9 +589,18 @@
                 return;
             }
             
-            gameState.teams.forEach((team, index) => {
+            // Use teamsData if available, otherwise use teams
+            const teamsToShow = gameState.teamsData || gameState.teams;
+            
+            teamsToShow.forEach((team, index) => {
                 const card = document.createElement("div");
                 card.className = "team-card animate__animated animate__fadeInUp";
+                
+                // Apply team color if available
+                if (team.color) {
+                    card.style.borderLeftColor = team.color;
+                    card.style.borderLeftWidth = "5px";
+                }
                 
                 let membersHTML = "";
                 team.members.forEach(member => {
@@ -543,24 +622,36 @@
                     teamsContainer.appendChild(card);
                 }, index * 100);
             });
+            
+            // Add rebels section if available
+            if (gameState.rebelsData) {
+                updateRebelsUI();
+            }
         }
         
         // Update rebels display
         function updateRebelsUI() {
-            if (gameState.phase !== "results" || gameState.rebels.leaders.length === 0) {
+            if (gameState.phase !== "results" || 
+                (gameState.rebels.leaders.length === 0 && !gameState.rebelsData)) {
                 rebelsSection.classList.add("hidden");
                 return;
             }
             
             rebelsSection.classList.remove("hidden");
             
+            // Use rebelsData if available
+            const rebelsData = gameState.rebelsData || {
+                leaders: gameState.rebels.leaders,
+                members: gameState.rebels.members
+            };
+            
             let leadersHTML = "";
-            gameState.rebels.leaders.forEach(leader => {
+            (rebelsData.leaders || []).forEach(leader => {
                 leadersHTML += `<span class="team-member">${DOMPurify.sanitize(leader)}</span>`;
             });
             
             let membersHTML = "";
-            gameState.rebels.members.forEach(member => {
+            (rebelsData.members || []).forEach(member => {
                 membersHTML += `<span class="team-member">${DOMPurify.sanitize(member)}</span>`;
             });
             
@@ -574,6 +665,11 @@
                     ${membersHTML || '<span class="team-member">No rebel members</span>'}
                 </div>
             `;
+            
+            // Apply rebels color if available
+            if (rebelsData.color) {
+                rebelsSection.style.backgroundColor = rebelsData.color;
+            }
         }
         
         // Update timer display

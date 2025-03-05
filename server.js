@@ -20,6 +20,8 @@ let gameState = {
     leaders: [],
     members: []
   },
+  teamsData: [],
+  rebelsData: null,
   timerEndTime: 0
 };
 
@@ -160,6 +162,8 @@ io.on("connection", (socket) => {
         leaders: [],
         members: []
       },
+      teamsData: [],
+      rebelsData: null,
       timerEndTime: Date.now() + 30000 // 30 seconds
     };
     
@@ -194,6 +198,64 @@ function endApplicationsPhase() {
   gameState.selectedCandidates = shuffled.slice(0, Math.min(12, shuffled.length));
   
   io.emit("gameState", gameState);
+}
+
+// Generate a random color from our theme palette with slight variations
+function generateTeamColor() {
+  // Base colors from our theme with slight variations
+  const baseColors = [
+    '#A27B5C', // accent-brown
+    '#8B6B4F', // darker accent-brown
+    '#B58B6C', // lighter accent-brown
+    '#3F4F44', // medium-green
+    '#4A5A4F', // lighter medium-green
+    '#344539'  // darker medium-green
+  ];
+  
+  // Pick a random color from the palette
+  const baseColor = baseColors[Math.floor(Math.random() * baseColors.length)];
+  
+  // Add slight random variation to make each team's color unique
+  const color = baseColor;
+  
+  return color;
+}
+
+// Save team data with additional information
+function saveTeamData() {
+  // Create a more detailed teams object with additional data
+  const teamsData = gameState.teams.map(team => {
+    return {
+      ...team,
+      color: generateTeamColor(),
+      score: 0,
+      wins: 0,
+      losses: 0
+    };
+  });
+  
+  // Create rebels team data
+  const rebelsData = {
+    teamName: "Rebels",
+    leader: gameState.rebels.leaders.length > 0 ? gameState.rebels.leaders[0] : "No Leader",
+    teamSlogan: "Resistance is not futile!",
+    members: gameState.rebels.members,
+    leaders: gameState.rebels.leaders,
+    color: "#8B3A3A", // Reddish color for rebels
+    score: 0,
+    wins: 0,
+    losses: 0
+  };
+  
+  // Save the enhanced team data back to game state
+  gameState.teamsData = teamsData;
+  gameState.rebelsData = rebelsData;
+  
+  // Log the team data for debugging
+  console.log("Teams data saved:", teamsData);
+  console.log("Rebels data saved:", rebelsData);
+  
+  return { teamsData, rebelsData };
 }
 
 // End voting phase and form teams
@@ -267,6 +329,9 @@ function endVotingPhase() {
     .map(([voter]) => voter);
   
   gameState.rebels.members = rebelVoters;
+  
+  // Save enhanced team data with colors
+  saveTeamData();
   
   io.emit("gameState", gameState);
 }
