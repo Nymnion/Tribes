@@ -328,6 +328,148 @@
             display: inline-block;
             font-size: 18px;
         }
+        
+        /* Hex Map Styles - Replace with Grid Map Styles */
+        .map-section {
+            margin-top: 20px;
+            background-color: var(--medium-green);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .map-instructions {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        
+        .current-picking {
+            background-color: var(--accent-brown);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .current-picking-team {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .picking-timer {
+            background-color: var(--dark-green);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .grid-map {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 4px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .grid-cell {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: cellAppear 0.5s ease forwards;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .grid-cell:hover:not(.water):not(.claimed) {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+        
+        .grid-cell.water {
+            background-color: #3498db;
+            cursor: not-allowed;
+        }
+        
+        .grid-cell.land {
+            background-color: #2ecc71;
+        }
+        
+        .grid-cell.mountain {
+            background-color: #95a5a6;
+        }
+        
+        .grid-cell.desert {
+            background-color: #f1c40f;
+        }
+        
+        .grid-cell.claimed {
+            cursor: not-allowed;
+            border: 3px solid;
+        }
+        
+        .cell-coords {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .cell-terrain {
+            font-size: 14px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .cell-resource {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .cell-owner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+            width: 80%;
+        }
+        
+        /* Animation for cell appearance */
+        @keyframes cellAppear {
+            from { 
+                opacity: 0;
+                transform: scale(0);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -341,6 +483,9 @@
             <div class="admin-controls animate__animated animate__fadeIn">
                 <button id="startApplicationsBtn" class="animate__animated animate__pulse animate__infinite">Start Applications</button>
                 <button id="startElectionBtn" disabled>Start Voting</button>
+                <button id="generateMapBtn" disabled>Generate Map</button>
+                <button id="resetGameBtn">Reset Game</button>
+                <button id="createDummyTeamsBtn">Create Dummy Teams</button>
             </div>
             
             <div class="candidates-section">
@@ -354,6 +499,22 @@
                 <h2 class="section-title">Teams</h2>
                 <div id="teamsContainer" class="teams-container">
                     <!-- Team cards will be added here -->
+                </div>
+            </div>
+            
+            <div class="map-section hidden">
+                <h2 class="section-title">Game Map</h2>
+                <div class="current-picking hidden">
+                    <div class="current-picking-team"><span id="currentPickingLeader">Leader</span> of <span id="currentPickingTeam">Team Name</span> is picking a starting position</div>
+                    <div class="picking-timer" id="pickingTimer">10</div>
+                </div>
+                <div class="map-instructions">
+                    <p>Team leaders: Type <span class="command-name">!claim A1</span> to claim your starting position.</p>
+                    <p>Example: <span class="command-name">!claim C4</span> (where C is the column and 4 is the row)</p>
+                    <p>You cannot start on water tiles. You have 10 seconds to pick or a position will be randomly assigned.</p>
+                </div>
+                <div id="gridMap" class="grid-map">
+                    <!-- Grid cells will be generated here -->
                 </div>
             </div>
             
@@ -375,6 +536,10 @@
                 <div class="command">
                     <span class="command-name">!vote #</span>
                     <span>Vote for a leader by number (during voting phase)</span>
+                </div>
+                <div class="command">
+                    <span class="command-name">!claim A1</span>
+                    <span>Claim a starting position on the map (team leaders only, during map phase)</span>
                 </div>
                 <div class="team-name-required pulse">Team name is required and must be unique!</div>
             </div>
@@ -398,16 +563,58 @@
     </div>
 
     <script>
-        const socket = io();
+        const socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000
+        });
+        
+        // Socket connection event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            document.getElementById('chatStatus').textContent = 'CONNECTED';
+            document.getElementById('chatStatus').classList.remove('pulse');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            document.getElementById('chatStatus').textContent = 'DISCONNECTED';
+            document.getElementById('chatStatus').classList.add('pulse');
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            document.getElementById('chatStatus').textContent = 'ERROR';
+            document.getElementById('chatStatus').classList.add('pulse');
+        });
+        
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`Reconnection attempt ${attemptNumber}`);
+            document.getElementById('chatStatus').textContent = 'RECONNECTING';
+            document.getElementById('chatStatus').classList.add('pulse');
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log(`Reconnected after ${attemptNumber} attempts`);
+            document.getElementById('chatStatus').textContent = 'CONNECTED';
+            document.getElementById('chatStatus').classList.remove('pulse');
+        });
+        
         const chatDiv = document.getElementById("chat");
         const currentPhaseEl = document.getElementById("currentPhase");
         const timerEl = document.getElementById("timer");
         const startApplicationsBtn = document.getElementById("startApplicationsBtn");
         const startElectionBtn = document.getElementById("startElectionBtn");
+        const generateMapBtn = document.getElementById("generateMapBtn");
+        const resetGameBtn = document.getElementById("resetGameBtn");
+        const createDummyTeamsBtn = document.getElementById("createDummyTeamsBtn");
         const candidatesContainer = document.getElementById("candidatesContainer");
         const teamsContainer = document.getElementById("teamsContainer");
         const rebelsSection = document.getElementById("rebelsSection");
         const rebelsContent = document.getElementById("rebelsContent");
+        const gridMap = document.getElementById("gridMap");
         
         // Game state
         let gameState = {
@@ -420,7 +627,10 @@
                 leaders: [],
                 members: []
             },
-            timerEndTime: 0
+            timerEndTime: 0,
+            mapGenerated: false,
+            claimedTiles: {},
+            map: null
         };
         
         // Chat message handler
@@ -474,6 +684,21 @@
             socket.emit("startElection");
         });
         
+        generateMapBtn.addEventListener("click", () => {
+            socket.emit("generateMap");
+            generateMapBtn.disabled = true;
+        });
+        
+        resetGameBtn.addEventListener("click", () => {
+            if (confirm("Are you sure you want to reset the game? This will clear all teams and progress.")) {
+                socket.emit("resetGame");
+            }
+        });
+        
+        createDummyTeamsBtn.addEventListener("click", () => {
+            socket.emit("createDummyTeams");
+        });
+        
         // Update UI based on game state
         function updateUI() {
             currentPhaseEl.textContent = capitalizeFirstLetter(gameState.phase);
@@ -490,6 +715,12 @@
             startApplicationsBtn.disabled = gameState.phase !== "idle";
             startElectionBtn.disabled = gameState.phase !== "selection";
             
+            // Enable Generate Map button only after teams are formed
+            generateMapBtn.disabled = gameState.phase !== "results" || gameState.mapGenerated;
+            
+            // Create Dummy Teams button should be enabled only in idle phase
+            createDummyTeamsBtn.disabled = gameState.phase !== "idle";
+            
             if (gameState.phase === "selection") {
                 startElectionBtn.classList.add("animate__pulse");
                 startElectionBtn.classList.add("animate__infinite");
@@ -498,10 +729,20 @@
                 startElectionBtn.classList.remove("animate__infinite");
             }
             
+            // If map is generated, highlight the Generate Map button
+            if (gameState.phase === "results" && !gameState.mapGenerated) {
+                generateMapBtn.classList.add("animate__pulse");
+                generateMapBtn.classList.add("animate__infinite");
+            } else {
+                generateMapBtn.classList.remove("animate__pulse");
+                generateMapBtn.classList.remove("animate__infinite");
+            }
+            
             // Hide/show sections based on phase
             const teamSection = document.querySelector('.teams-section');
             const candidatesSection = document.querySelector('.candidates-section');
             const applicationMessage = document.querySelector('.application-message');
+            const mapSection = document.querySelector('.map-section');
             
             // Show application message only during application phase
             if (gameState.phase === "applications") {
@@ -528,6 +769,19 @@
                 teamSection.classList.remove('hidden');
             }
             
+            // Show map only if it's been generated
+            if (gameState.mapGenerated) {
+                mapSection.classList.remove('hidden');
+                
+                // If map is generated, hide other sections
+                if (gameState.phase === "map") {
+                    candidatesSection.classList.add('hidden');
+                    teamSection.classList.add('hidden');
+                }
+            } else {
+                mapSection.classList.add('hidden');
+            }
+            
             // Update candidates
             updateCandidatesUI();
             
@@ -536,6 +790,11 @@
             
             // Update rebels
             updateRebelsUI();
+            
+            // Update map
+            if (gameState.mapGenerated) {
+                updateMapUI();
+            }
         }
         
         // Update candidates display
@@ -728,6 +987,219 @@
                 voteCountEl.textContent = `${voteCount} votes`;
             });
         }
+        
+        // Update map UI - replace hex map with grid map
+        function updateMapUI() {
+            const gridMap = document.getElementById("gridMap");
+            const currentPickingDiv = document.querySelector(".current-picking");
+            const currentPickingTeam = document.getElementById("currentPickingTeam");
+            const currentPickingLeader = document.getElementById("currentPickingLeader");
+            const pickingTimer = document.getElementById("pickingTimer");
+            
+            // If we don't have map data yet, don't do anything
+            if (!gameState.map) return;
+            
+            // Clear the grid
+            gridMap.innerHTML = '';
+            
+            // Generate the grid
+            for (let row = 0; row < gameState.map.size; row++) {
+                for (let col = 0; col < gameState.map.size; col++) {
+                    const cell = gameState.map.grid[row][col];
+                    const cellElement = document.createElement('div');
+                    cellElement.className = `grid-cell ${cell.terrain}`;
+                    cellElement.id = `cell-${row}-${col}`;
+                    cellElement.style.animationDelay = `${(row * gameState.map.size + col) * 0.02}s`;
+                    
+                    // Convert to A1-F6 format
+                    const colLetter = String.fromCharCode('A'.charCodeAt(0) + col);
+                    const rowNumber = row + 1;
+                    const coordLabel = `${colLetter}${rowNumber}`;
+                    
+                    // Add coordinates
+                    const coordsElement = document.createElement('div');
+                    coordsElement.className = 'cell-coords';
+                    coordsElement.textContent = coordLabel;
+                    cellElement.appendChild(coordsElement);
+                    
+                    // Add terrain type
+                    const terrainElement = document.createElement('div');
+                    terrainElement.className = 'cell-terrain';
+                    terrainElement.textContent = capitalizeFirstLetter(cell.terrain);
+                    cellElement.appendChild(terrainElement);
+                    
+                    // Add resource if present
+                    if (cell.resource) {
+                        const resourceElement = document.createElement('div');
+                        resourceElement.className = 'cell-resource';
+                        resourceElement.textContent = capitalizeFirstLetter(cell.resource);
+                        cellElement.appendChild(resourceElement);
+                    }
+                    
+                    // If cell is claimed, show owner
+                    if (cell.owner) {
+                        cellElement.classList.add('claimed');
+                        
+                        // Find the team that owns this cell
+                        const ownerTeam = gameState.teamsData.find(team => team.leader === cell.owner);
+                        if (ownerTeam) {
+                            cellElement.style.borderColor = ownerTeam.color;
+                            
+                            const ownerElement = document.createElement('div');
+                            ownerElement.className = 'cell-owner';
+                            ownerElement.textContent = ownerTeam.teamName;
+                            cellElement.appendChild(ownerElement);
+                        }
+                    }
+                    
+                    gridMap.appendChild(cellElement);
+                }
+            }
+            
+            // Update current picking team display
+            if (gameState.map.currentTeamPicking) {
+                currentPickingDiv.classList.remove('hidden');
+                
+                // Find the team that's currently picking
+                const pickingTeam = gameState.teamsData.find(team => 
+                    team.leader === gameState.map.currentTeamPicking);
+                
+                if (pickingTeam) {
+                    currentPickingTeam.textContent = pickingTeam.teamName;
+                    currentPickingTeam.style.color = pickingTeam.color;
+                    currentPickingLeader.textContent = pickingTeam.leader;
+                    currentPickingLeader.style.color = pickingTeam.color;
+                }
+                
+                // Update the timer
+                updatePickingTimer();
+            } else {
+                currentPickingDiv.classList.add('hidden');
+            }
+        }
+        
+        // Update the picking timer
+        function updatePickingTimer() {
+            const pickingTimer = document.getElementById("pickingTimer");
+            if (!gameState.map || !gameState.map.pickingTimeEnd) return;
+            
+            const timeLeft = Math.max(0, Math.floor((gameState.map.pickingTimeEnd - Date.now()) / 1000));
+            pickingTimer.textContent = timeLeft;
+            
+            // Add pulse animation when time is running low
+            if (timeLeft <= 3) {
+                pickingTimer.classList.add("pulse");
+            } else {
+                pickingTimer.classList.remove("pulse");
+            }
+            
+            // Continue updating the timer
+            if (timeLeft > 0 && gameState.map.currentTeamPicking) {
+                setTimeout(updatePickingTimer, 1000);
+            }
+        }
+        
+        // Handle cell claimed event
+        socket.on("cellClaimed", (data) => {
+            if (!gameState.map || !gameState.map.grid) return;
+            
+            // Update the cell in our local data
+            const cell = gameState.map.grid[data.row][data.col];
+            if (cell) {
+                cell.owner = data.owner;
+                
+                // Update the UI for this cell
+                const cellElement = document.getElementById(`cell-${data.row}-${data.col}`);
+                if (cellElement) {
+                    cellElement.classList.add('claimed');
+                    cellElement.style.borderColor = data.color;
+                    
+                    // Add or update owner element
+                    let ownerElement = cellElement.querySelector('.cell-owner');
+                    if (!ownerElement) {
+                        ownerElement = document.createElement('div');
+                        ownerElement.className = 'cell-owner';
+                        cellElement.appendChild(ownerElement);
+                    }
+                    ownerElement.textContent = data.teamName;
+                }
+            }
+        });
+        
+        // Handle picking update event
+        socket.on("pickingUpdate", (data) => {
+            if (!gameState.map) return;
+            
+            gameState.map.currentTeamPicking = data.currentTeamPicking;
+            gameState.map.pickingTimeEnd = data.pickingTimeEnd;
+            
+            // Update the UI
+            const currentPickingDiv = document.querySelector(".current-picking");
+            const currentPickingTeam = document.getElementById("currentPickingTeam");
+            const currentPickingLeader = document.getElementById("currentPickingLeader");
+            
+            if (gameState.map.currentTeamPicking) {
+                currentPickingDiv.classList.remove('hidden');
+                
+                // Find the team that's currently picking
+                const pickingTeam = gameState.teamsData.find(team => 
+                    team.leader === gameState.map.currentTeamPicking);
+                
+                if (pickingTeam) {
+                    currentPickingTeam.textContent = pickingTeam.teamName;
+                    currentPickingTeam.style.color = pickingTeam.color;
+                    currentPickingLeader.textContent = pickingTeam.leader;
+                    currentPickingLeader.style.color = pickingTeam.color;
+                } else if (data.pickingTeamName) {
+                    // Use the team name from the server if available
+                    currentPickingTeam.textContent = data.pickingTeamName;
+                    currentPickingLeader.textContent = data.currentTeamPicking;
+                }
+                
+                // Update the timer
+                updatePickingTimer();
+            } else {
+                currentPickingDiv.classList.add('hidden');
+            }
+        });
+        
+        // Handle picking complete event
+        socket.on("pickingComplete", () => {
+            if (!gameState.map) return;
+            
+            gameState.map.currentTeamPicking = null;
+            
+            // Update the UI
+            const currentPickingDiv = document.querySelector(".current-picking");
+            currentPickingDiv.classList.add('hidden');
+        });
+        
+        // Handle map generated event
+        socket.on("mapGenerated", (mapData) => {
+            gameState.mapGenerated = true;
+            gameState.map = mapData;
+            updateUI();
+        });
+        
+        // Handle game reset
+        socket.on("gameReset", () => {
+            gameState = {
+                phase: "idle",
+                candidates: [],
+                selectedCandidates: [],
+                votes: {},
+                teams: [],
+                rebels: {
+                    leaders: [],
+                    members: []
+                },
+                timerEndTime: 0,
+                mapGenerated: false,
+                claimedTiles: {},
+                map: null
+            };
+            updateUI();
+        });
     </script>
 </body>
 </html>
