@@ -3,663 +3,635 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TWITCH TRIBE</title>
+    <title>Twitch Tribal Game</title>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
         :root {
-            --dark-bg: #1a1a1a;
-            --medium-bg: #2d2d2d;
-            --light-bg: #3a3a3a;
-            --accent: #ff7d1a;
-            --accent-darker: #e06500;
-            --text: #e0e0e0;
-            --text-dim: #9e9e9e;
-            --success: #4CAF50;
-            --warning: #FFC107;
-            --danger: #F44336;
+            --dark-green: #1A2419;
+            --medium-green: #2C3930;
+            --accent-brown: #A27B5C;
+            --light-cream: #DCD7C9;
+            --dark-overlay: rgba(0, 0, 0, 0.7);
+        }
+        
+        * {
+            box-sizing: border-box;
+            transition: all 0.3s ease;
         }
         
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--text);
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            background-color: var(--dark-green);
+            color: var(--light-cream);
         }
         
         .container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: 100vh;
             width: 100%;
-            max-width: 1000px;
+        }
+        
+        .game-panel {
             padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 15px 0;
-            background-color: var(--medium-bg);
-            border-radius: 8px;
-            border-bottom: 3px solid var(--accent);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header h1 {
-            margin: 0;
-            font-size: 2.2rem;
-            letter-spacing: 1px;
-            color: var(--accent);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-        }
-        
-        .content-wrapper {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .left-panel {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .right-panel {
-            flex: 1;
-        }
-        
-        #chat { 
-            height: 600px;
             overflow-y: auto;
-            background-color: var(--medium-bg);
-            border-radius: 8px;
-            border: 1px solid var(--light-bg);
-            padding: 15px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            display: grid;
+            grid-template-rows: auto auto auto 1fr auto;
+            gap: 20px;
         }
         
-        .message { 
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            background-color: var(--light-bg);
-            border-left: 3px solid var(--accent);
-            transition: background-color 0.2s;
-        }
-        
-        .message:hover {
-            background-color: #454545;
-        }
-        
-        .username {
-            color: var(--accent);
-            font-weight: bold;
-            margin-right: 8px;
-            display: inline-block;
-        }
-        
-        .content {
-            word-break: break-word;
-        }
-        
-        /* Custom scrollbar */
-        #chat::-webkit-scrollbar, .candidates-container::-webkit-scrollbar, .teams-container::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        #chat::-webkit-scrollbar-track, .candidates-container::-webkit-scrollbar-track, .teams-container::-webkit-scrollbar-track {
-            background: var(--dark-bg);
-            border-radius: 4px;
-        }
-        
-        #chat::-webkit-scrollbar-thumb, .candidates-container::-webkit-scrollbar-thumb, .teams-container::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 4px;
-        }
-        
-        #chat::-webkit-scrollbar-thumb:hover, .candidates-container::-webkit-scrollbar-thumb:hover, .teams-container::-webkit-scrollbar-thumb:hover {
-            background: #ff9641;
-        }
-        
-        /* Game controls */
-        .game-controls {
-            background-color: var(--medium-bg);
-            border-radius: 8px;
-            padding: 15px;
+        .chat-panel {
+            background-color: var(--medium-green);
+            border-left: 1px solid var(--accent-brown);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+        }
+        
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: calc(100vh - 150px);
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-brown) var(--medium-green);
+        }
+        
+        #chat::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #chat::-webkit-scrollbar-track {
+            background: var(--medium-green);
+        }
+        
+        #chat::-webkit-scrollbar-thumb {
+            background-color: var(--accent-brown);
+            border-radius: 4px;
+        }
+        
+        .message {
+            padding: 8px;
+            border-bottom: 1px solid rgba(220, 215, 201, 0.1);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .game-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-brown);
         }
         
-        .game-header h2 {
-            margin: 0;
-            color: var(--accent);
-        }
-        
-        .game-timer {
-            font-size: 1.2rem;
+        .phase-display {
+            font-size: 24px;
             font-weight: bold;
-            color: var(--warning);
+            color: var(--light-cream);
         }
         
-        .btn {
-            background-color: var(--accent);
-            color: white;
+        .timer {
+            font-size: 20px;
+            background-color: var(--accent-brown);
+            color: var(--light-cream);
+            padding: 5px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .admin-controls {
+            padding: 15px;
+            background-color: var(--medium-green);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: var(--accent-brown);
+            color: var(--light-cream);
             border: none;
             border-radius: 4px;
-            padding: 10px 15px;
-            font-size: 1rem;
-            font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.2s;
-            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
         }
         
-        .btn:hover {
-            background-color: var(--accent-darker);
+        button:hover {
+            background-color: #b68e6d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         
-        .btn:disabled {
-            background-color: var(--light-bg);
-            color: var(--text-dim);
+        button:disabled {
+            background-color: #5a5a5a;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
-        .game-instructions {
-            background-color: var(--light-bg);
-            border-radius: 6px;
+        .section-title {
+            color: var(--light-cream);
+            border-bottom: 2px solid var(--accent-brown);
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+        
+        .candidates-container, .teams-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .candidate-card, .team-card {
+            background-color: var(--medium-green);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.5s ease;
+            border-left: 3px solid var(--accent-brown);
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .candidate-card:hover, .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .candidate-card h3, .team-card h3 {
+            margin-top: 0;
+            color: var(--light-cream);
+            border-bottom: 1px solid var(--accent-brown);
+            padding-bottom: 8px;
+        }
+        
+        .vote-number {
+            display: inline-block;
+            background-color: var(--accent-brown);
+            color: var(--light-cream);
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            line-height: 28px;
+            border-radius: 50%;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        
+        .vote-count {
+            float: right;
+            background-color: var(--dark-green);
+            color: var(--light-cream);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .team-members {
+            margin-top: 15px;
+            font-size: 14px;
+            background-color: rgba(0,0,0,0.3);
             padding: 10px;
-            margin-bottom: 10px;
+            border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
         }
         
-        .game-instructions p {
-            margin: 5px 0;
+        .team-member {
+            display: block;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(220, 215, 201, 0.1);
+        }
+        
+        .rebels-section {
+            background-color: #8B3A3A;
+            color: var(--light-cream);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            animation: pulseRed 2s infinite alternate;
+        }
+        
+        @keyframes pulseRed {
+            from { box-shadow: 0 0 10px rgba(139, 58, 58, 0.5); }
+            to { box-shadow: 0 0 20px rgba(139, 58, 58, 0.8); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .commands-section {
+            background-color: var(--medium-green);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
         .command {
+            background-color: rgba(0,0,0,0.3);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .command-name {
             font-family: monospace;
-            padding: 3px 6px;
-            background-color: var(--dark-bg);
-            border-radius: 3px;
-        }
-        
-        /* Candidates display */
-        .candidates-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            max-height: 500px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        
-        .candidate-card {
-            background-color: var(--light-bg);
-            border-radius: 8px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            border-left: 3px solid var(--accent);
-            transition: transform 0.2s;
-        }
-        
-        .candidate-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .candidate-name {
-            font-size: 1.2rem;
+            background-color: var(--dark-green);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-right: 10px;
             font-weight: bold;
-            color: var(--accent);
+            color: var(--light-cream);
         }
         
-        .candidate-team {
-            font-weight: bold;
-        }
-        
-        .candidate-slogan {
-            font-style: italic;
-            color: var(--text-dim);
-        }
-        
-        /* Teams display */
-        .teams-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-height: 600px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        
-        .team-card {
-            background-color: var(--light-bg);
-            border-radius: 8px;
+        .chat-header {
             padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .team-header {
+            background-color: var(--dark-green);
+            border-bottom: 1px solid var(--accent-brown);
+            font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        .team-name {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--accent);
+        .chat-title {
+            margin: 0;
+            color: var(--light-cream);
         }
         
-        .team-size {
-            background-color: var(--accent);
-            color: white;
-            border-radius: 12px;
-            padding: 3px 8px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        
-        .team-leader {
-            font-weight: bold;
-        }
-        
-        .team-slogan {
+        .team-name-required {
+            color: #ff6b6b;
             font-style: italic;
-            color: var(--text-dim);
-            margin-bottom: 10px;
+            margin-top: 5px;
         }
         
-        .team-members {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
+        .pulse {
+            animation: pulse 2s infinite;
         }
         
-        .team-member {
-            background-color: var(--medium-bg);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-        
-        .rebels-container {
-            margin-top: 20px;
-            background-color: var(--danger);
-            border-radius: 8px;
-            padding: 15px;
-        }
-        
-        .rebels-header {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: white;
-        }
-        
-        .rebels-leaders, .rebels-members {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        
-        .rebel-leader, .rebel-member {
-            background-color: rgba(0, 0, 0, 0.2);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            color: white;
-        }
-        
-        .phase-display {
-            text-align: center;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            font-weight: bold;
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>TWITCH TRIBE</h1>
-        </div>
-        
-        <div class="content-wrapper">
-            <div class="left-panel">
-                <div class="game-controls">
-                    <div class="game-header">
-                        <h2>Tribe Elections</h2>
-                        <div id="game-timer" class="game-timer">00:00</div>
-                    </div>
-                    
-                    <div id="phase-display" class="phase-display">Ready to start</div>
-                    
-                    <div id="game-instructions" class="game-instructions">
-                        <p>Start the application phase to allow viewers to apply as candidates.</p>
-                    </div>
-                    
-                    <button id="start-applications-btn" class="btn">Open Candidate Applications!</button>
-                    <button id="start-election-btn" class="btn" disabled>Start Election!</button>
-                </div>
-                
-                <div id="game-display">
-                    <!-- This will hold candidates and teams display based on game phase -->
+        <div class="game-panel">
+            <div class="game-header">
+                <div class="phase-display">Phase: <span id="currentPhase" class="animate__animated animate__fadeIn">Idle</span></div>
+                <div class="timer" id="timer">00:00</div>
+            </div>
+            
+            <div class="admin-controls animate__animated animate__fadeIn">
+                <button id="startApplicationsBtn" class="animate__animated animate__pulse animate__infinite">Start Applications</button>
+                <button id="startElectionBtn" disabled>Start Voting</button>
+            </div>
+            
+            <h2 class="section-title">Candidates</h2>
+            <div id="candidatesContainer" class="candidates-container">
+                <!-- Candidate cards will be added here -->
+            </div>
+            
+            <div class="teams-section">
+                <h2 class="section-title">Teams</h2>
+                <div id="teamsContainer" class="teams-container">
+                    <!-- Team cards will be added here -->
                 </div>
             </div>
             
-            <div class="right-panel">
-                <div id="chat"></div>
+            <div id="rebelsSection" class="rebels-section hidden animate__animated animate__fadeIn">
+                <h2>Rebels</h2>
+                <div id="rebelsContent"></div>
             </div>
+            
+            <div class="commands-section animate__animated animate__fadeIn">
+                <h2 class="section-title">Commands</h2>
+                <div class="command">
+                    <span class="command-name">!run TeamName TeamMotto</span>
+                    <span>Apply to be a team leader (during application phase)</span>
+                </div>
+                <div class="command">
+                    <span class="command-name">!vote LeaderName</span>
+                    <span>Vote for a leader by name (during voting phase)</span>
+                </div>
+                <div class="command">
+                    <span class="command-name">!vote #</span>
+                    <span>Vote for a leader by number (during voting phase)</span>
+                </div>
+                <div class="team-name-required pulse">Team name is required and must be unique!</div>
+            </div>
+        </div>
+        
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h2 class="chat-title">Twitch Chat</h2>
+                <div id="chatStatus" class="pulse">LIVE</div>
+            </div>
+            <div id="chat"></div>
         </div>
     </div>
 
     <script>
         const socket = io();
         const chatDiv = document.getElementById("chat");
-        const gameDisplay = document.getElementById("game-display");
-        const phaseDisplay = document.getElementById("phase-display");
-        const gameTimer = document.getElementById("game-timer");
-        const gameInstructions = document.getElementById("game-instructions");
-        const startApplicationsBtn = document.getElementById("start-applications-btn");
-        const startElectionBtn = document.getElementById("start-election-btn");
+        const currentPhaseEl = document.getElementById("currentPhase");
+        const timerEl = document.getElementById("timer");
+        const startApplicationsBtn = document.getElementById("startApplicationsBtn");
+        const startElectionBtn = document.getElementById("startElectionBtn");
+        const candidatesContainer = document.getElementById("candidatesContainer");
+        const teamsContainer = document.getElementById("teamsContainer");
+        const rebelsSection = document.getElementById("rebelsSection");
+        const rebelsContent = document.getElementById("rebelsContent");
         
-        let currentGameState = {
+        // Game state
+        let gameState = {
             phase: "idle",
+            candidates: [],
+            selectedCandidates: [],
+            votes: {},
+            teams: [],
+            rebels: {
+                leaders: [],
+                members: []
+            },
             timerEndTime: 0
         };
         
-        // Timer update function
-        function updateTimer() {
-            if (currentGameState.timerEndTime > 0) {
-                const now = Date.now();
-                const timeLeft = Math.max(0, currentGameState.timerEndTime - now);
-                
-                if (timeLeft > 0) {
-                    const seconds = Math.floor(timeLeft / 1000);
-                    const tenths = Math.floor((timeLeft % 1000) / 100);
-                    gameTimer.textContent = `${seconds}.${tenths}`;
-                    requestAnimationFrame(updateTimer);
-                } else {
-                    gameTimer.textContent = "0.0";
-                }
-            } else {
-                gameTimer.textContent = "--:--";
-            }
-        }
-        
-        // Handle chat messages
+        // Chat message handler
         socket.on("chatMessage", (data) => {
             const messageElement = document.createElement("div");
             messageElement.classList.add("message");
+            messageElement.classList.add("animate__animated");
+            messageElement.classList.add("animate__fadeIn");
             
+            // Sanitize the username and message content
             const sanitizedUser = DOMPurify.sanitize(data.user);
             const sanitizedMessage = DOMPurify.sanitize(data.message);
             
-            const usernameElement = document.createElement("span");
-            usernameElement.classList.add("username");
-            usernameElement.textContent = sanitizedUser;
-            
-            const contentElement = document.createElement("span");
-            contentElement.classList.add("content");
-            contentElement.textContent = sanitizedMessage;
+            // Use textContent for username to prevent HTML injection
+            const usernameElement = document.createElement("strong");
+            usernameElement.textContent = sanitizedUser + ": ";
             
             messageElement.appendChild(usernameElement);
-            messageElement.appendChild(contentElement);
+            messageElement.appendChild(document.createTextNode(sanitizedMessage));
             
             chatDiv.appendChild(messageElement);
-            
-            // Auto-scroll to newest messages
             chatDiv.scrollTop = chatDiv.scrollHeight;
-            
-            // Add a subtle animation for new messages
-            messageElement.style.opacity = "0";
-            messageElement.style.transform = "translateX(-10px)";
-            messageElement.style.transition = "opacity 0.3s, transform 0.3s";
-            
-            setTimeout(() => {
-                messageElement.style.opacity = "1";
-                messageElement.style.transform = "translateX(0)";
-            }, 10);
         });
         
-        // Handle game state updates
-        socket.on("gameState", (gameState) => {
-            currentGameState = gameState;
-            updateGameUI();
-            updateTimer();
+        // Game state update handler
+        socket.on("gameState", (state) => {
+            gameState = state;
+            updateUI();
         });
         
-        // Handle candidate updates
+        // Candidates update handler
         socket.on("updateCandidates", (candidates) => {
-            if (currentGameState.phase === "applications") {
-                displayCandidates(candidates);
-            }
+            gameState.candidates = candidates;
+            updateCandidatesUI();
         });
         
-        // Handle vote updates
+        // Votes update handler
         socket.on("updateVotes", (votes) => {
-            if (currentGameState.phase === "voting") {
-                // Could show live vote counts if desired
-                const voteCount = Object.keys(votes).length;
-                phaseDisplay.textContent = `Voting in progress... (${voteCount} votes)`;
-            }
+            gameState.votes = votes;
+            updateVotesUI();
         });
         
-        // Button event listeners
+        // Admin controls
         startApplicationsBtn.addEventListener("click", () => {
             socket.emit("startApplications");
+            startApplicationsBtn.classList.remove("animate__pulse");
+            startApplicationsBtn.classList.remove("animate__infinite");
         });
         
         startElectionBtn.addEventListener("click", () => {
             socket.emit("startElection");
         });
         
-        // Update the game UI based on the current state
-        function updateGameUI() {
-            const phase = currentGameState.phase;
+        // Update UI based on game state
+        function updateUI() {
+            currentPhaseEl.textContent = capitalizeFirstLetter(gameState.phase);
+            currentPhaseEl.classList.add("animate__animated");
+            currentPhaseEl.classList.add("animate__fadeIn");
             
-            // Update buttons
-            startApplicationsBtn.disabled = phase !== "idle" && phase !== "results";
-            startElectionBtn.disabled = phase !== "selection";
-            
-            // Update phase display
-            switch (phase) {
-                case "idle":
-                    phaseDisplay.textContent = "Ready to start";
-                    break;
-                case "applications":
-                    phaseDisplay.textContent = "Application phase";
-                    break;
-                case "selection":
-                    phaseDisplay.textContent = "Candidates selected";
-                    break;
-                case "voting":
-                    phaseDisplay.textContent = "Voting in progress...";
-                    break;
-                case "results":
-                    phaseDisplay.textContent = "Results";
-                    break;
+            // Update timer
+            if (gameState.timerEndTime > 0) {
+                updateTimer();
+                setInterval(updateTimer, 1000);
             }
             
-            // Update instructions
-            switch (phase) {
-                case "idle":
-                    gameInstructions.innerHTML = `
-                        <p>Start the application phase to allow viewers to apply as candidates.</p>
-                    `;
-                    break;
-                case "applications":
-                    gameInstructions.innerHTML = `
-                        <p>Chatters can run as candidates with this command:</p>
-                        <p><span class="command">!run &lt;Team Name&gt; &lt;Team Slogan/Motto&gt;</span></p>
-                        <p>Example: <span class="command">!run Dragons Fire and Fury!</span></p>
-                    `;
-                    break;
-                case "selection":
-                    gameInstructions.innerHTML = `
-                        <p>10 random candidates have been selected!</p>
-                        <p>Click "Start Election" to begin the voting phase.</p>
-                    `;
-                    break;
-                case "voting":
-                    gameInstructions.innerHTML = `
-                        <p>Viewers can vote for a candidate using:</p>
-                        <p><span class="command">!vote &lt;Candidate Username&gt;</span></p>
-                        <p>Example: <span class="command">!vote JohnDoe</span></p>
-                    `;
-                    break;
-                case "results":
-                    gameInstructions.innerHTML = `
-                        <p>The election is complete! The top 5 voted candidates lead their teams.</p>
-                        <p>Click "Open Candidate Applications" to start a new election.</p>
-                    `;
-                    break;
-            }
+            // Update buttons based on phase
+            startApplicationsBtn.disabled = gameState.phase !== "idle";
+            startElectionBtn.disabled = gameState.phase !== "selection";
             
-            // Update main display
-            switch (phase) {
-                case "idle":
-                    gameDisplay.innerHTML = `
-                        <div style="padding: 20px; text-align: center;">
-                            <h3>Welcome to Twitch Tribe Elections!</h3>
-                            <p>Click "Open Candidate Applications" to start the game.</p>
-                        </div>
-                    `;
-                    break;
-                case "applications":
-                    displayCandidates(currentGameState.candidates);
-                    break;
-                case "selection":
-                    displayCandidates(currentGameState.selectedCandidates);
-                    break;
-                case "voting":
-                    displayCandidates(currentGameState.selectedCandidates);
-                    break;
-                case "results":
-                    displayTeams();
-                    break;
-            }
-        }
-        
-        // Display candidates
-        function displayCandidates(candidates) {
-            let html = `
-                <h3>${candidates.length} ${currentGameState.phase === "applications" ? "Applications" : "Candidates"}</h3>
-                <div class="candidates-container">
-            `;
-            
-            if (candidates.length === 0) {
-                html += `<p style="grid-column: 1/-1; text-align: center;">No candidates yet. Chat can join with !run &lt;Team Name&gt; &lt;Team Slogan&gt;</p>`;
+            if (gameState.phase === "selection") {
+                startElectionBtn.classList.add("animate__pulse");
+                startElectionBtn.classList.add("animate__infinite");
             } else {
-                candidates.forEach(candidate => {
-                    html += `
-                        <div class="candidate-card">
-                            <div class="candidate-name">${candidate.username}</div>
-                            <div class="candidate-team">Team: ${candidate.teamName}</div>
-                            <div class="candidate-slogan">"${candidate.teamSlogan}"</div>
-                        </div>
-                    `;
-                });
+                startElectionBtn.classList.remove("animate__pulse");
+                startElectionBtn.classList.remove("animate__infinite");
             }
             
-            html += `</div>`;
-            gameDisplay.innerHTML = html;
+            // Hide/show team section based on phase
+            const teamSection = document.querySelector('.teams-section');
+            if (gameState.phase === "idle" || gameState.phase === "applications") {
+                teamSection.classList.add('hidden');
+            } else {
+                teamSection.classList.remove('hidden');
+            }
+            
+            // Update candidates
+            updateCandidatesUI();
+            
+            // Update teams
+            updateTeamsUI();
+            
+            // Update rebels
+            updateRebelsUI();
         }
         
-        // Display teams
-        function displayTeams() {
-            let html = `<h3>Election Results</h3>`;
+        // Update candidates display
+        function updateCandidatesUI() {
+            candidatesContainer.innerHTML = "";
             
-            // Main teams
-            html += `<div class="teams-container">`;
+            const candidatesToShow = gameState.phase === "applications" || gameState.phase === "idle" 
+                ? gameState.candidates 
+                : gameState.selectedCandidates;
             
-            currentGameState.teams.forEach(team => {
-                html += `
-                    <div class="team-card">
-                        <div class="team-header">
-                            <div class="team-name">${team.teamName}</div>
-                            <div class="team-size">${team.members.length + 1} members</div>
-                        </div>
-                        <div class="team-leader">Leader: ${team.leader}</div>
-                        <div class="team-slogan">"${team.teamSlogan}"</div>
-                        <div class="team-members">
-                `;
+            candidatesToShow.forEach((candidate, index) => {
+                const card = document.createElement("div");
+                card.className = "candidate-card animate__animated animate__fadeIn";
                 
-                if (team.members.length === 0) {
-                    html += `<div class="team-member">No members yet</div>`;
-                } else {
-                    team.members.forEach(member => {
-                        html += `<div class="team-member">${member}</div>`;
-                    });
+                let voteNumber = "";
+                if (gameState.phase === "voting" || gameState.phase === "results") {
+                    voteNumber = `<span class="vote-number">${index + 1}</span>`;
                 }
                 
-                html += `
-                        </div>
-                    </div>
+                let voteCount = "";
+                if (gameState.phase === "results") {
+                    const count = Object.values(gameState.votes).filter(
+                        vote => vote.toLowerCase() === candidate.username.toLowerCase()
+                    ).length;
+                    voteCount = `<span class="vote-count">${count} votes</span>`;
+                }
+                
+                card.innerHTML = `
+                    <h3>${voteNumber}${DOMPurify.sanitize(candidate.username)}${voteCount}</h3>
+                    <p><strong>Team:</strong> ${DOMPurify.sanitize(candidate.teamName)}</p>
+                    <p><strong>Motto:</strong> ${DOMPurify.sanitize(candidate.teamSlogan)}</p>
                 `;
+                
+                // Add a slight delay for staggered animation
+                setTimeout(() => {
+                    candidatesContainer.appendChild(card);
+                }, index * 50);
             });
-            
-            // Rebels
-            html += `
-                <div class="rebels-container">
-                    <div class="rebels-header">The Rebels</div>
-                    <div>Fallen Leaders:</div>
-                    <div class="rebels-leaders">
-            `;
-            
-            if (currentGameState.rebels.leaders.length === 0) {
-                html += `<div class="rebel-leader">No rebel leaders</div>`;
-            } else {
-                currentGameState.rebels.leaders.forEach(leader => {
-                    html += `<div class="rebel-leader">${leader}</div>`;
-                });
-            }
-            
-            html += `
-                    </div>
-                    <div>Rebel Members:</div>
-                    <div class="rebels-members">
-            `;
-            
-            if (currentGameState.rebels.members.length === 0) {
-                html += `<div class="rebel-member">No rebel members</div>`;
-            } else {
-                currentGameState.rebels.members.forEach(member => {
-                    html += `<div class="rebel-member">${member}</div>`;
-                });
-            }
-            
-            html += `
-                    </div>
-                </div>
-            `;
-            
-            html += `</div>`;
-            gameDisplay.innerHTML = html;
         }
         
-        // Initialize
-        updateGameUI();
+        // Update teams display
+        function updateTeamsUI() {
+            teamsContainer.innerHTML = "";
+            
+            if (gameState.phase !== "results") {
+                return;
+            }
+            
+            gameState.teams.forEach((team, index) => {
+                const card = document.createElement("div");
+                card.className = "team-card animate__animated animate__fadeInUp";
+                
+                let membersHTML = "";
+                team.members.forEach(member => {
+                    membersHTML += `<span class="team-member">${DOMPurify.sanitize(member)}</span>`;
+                });
+                
+                card.innerHTML = `
+                    <h3>${DOMPurify.sanitize(team.teamName)}</h3>
+                    <p><strong>Leader:</strong> ${DOMPurify.sanitize(team.leader)}</p>
+                    <p><strong>Motto:</strong> ${DOMPurify.sanitize(team.teamSlogan)}</p>
+                    <div class="team-members">
+                        <strong>Members:</strong>
+                        ${membersHTML || '<span class="team-member">No members yet</span>'}
+                    </div>
+                `;
+                
+                // Add a slight delay for staggered animation
+                setTimeout(() => {
+                    teamsContainer.appendChild(card);
+                }, index * 100);
+            });
+        }
+        
+        // Update rebels display
+        function updateRebelsUI() {
+            if (gameState.phase !== "results" || gameState.rebels.leaders.length === 0) {
+                rebelsSection.classList.add("hidden");
+                return;
+            }
+            
+            rebelsSection.classList.remove("hidden");
+            
+            let leadersHTML = "";
+            gameState.rebels.leaders.forEach(leader => {
+                leadersHTML += `<span class="team-member">${DOMPurify.sanitize(leader)}</span>`;
+            });
+            
+            let membersHTML = "";
+            gameState.rebels.members.forEach(member => {
+                membersHTML += `<span class="team-member">${DOMPurify.sanitize(member)}</span>`;
+            });
+            
+            rebelsContent.innerHTML = `
+                <div>
+                    <strong>Leaders:</strong>
+                    ${leadersHTML || '<span class="team-member">No rebel leaders</span>'}
+                </div>
+                <div>
+                    <strong>Members:</strong>
+                    ${membersHTML || '<span class="team-member">No rebel members</span>'}
+                </div>
+            `;
+        }
+        
+        // Update timer display
+        function updateTimer() {
+            const now = Date.now();
+            const timeLeft = Math.max(0, gameState.timerEndTime - now);
+            
+            const seconds = Math.floor(timeLeft / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            
+            timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            
+            // Add pulse animation when time is running low
+            if (seconds <= 10) {
+                timerEl.classList.add("pulse");
+            } else {
+                timerEl.classList.remove("pulse");
+            }
+        }
+        
+        // Helper function to capitalize first letter
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+        
+        // Update votes UI
+        function updateVotesUI() {
+            // Only update during voting phase
+            if (gameState.phase !== "voting") {
+                return;
+            }
+            
+            // Update vote count for each candidate
+            const voteCountMap = {};
+            Object.values(gameState.votes).forEach(vote => {
+                voteCountMap[vote] = (voteCountMap[vote] || 0) + 1;
+            });
+            
+            // Update the candidate cards with vote counts
+            const candidateCards = document.querySelectorAll('.candidate-card');
+            candidateCards.forEach((card, index) => {
+                const candidate = gameState.selectedCandidates[index];
+                if (!candidate) return;
+                
+                const voteCount = voteCountMap[candidate.username.toLowerCase()] || 0;
+                
+                // Add or update vote count display
+                let voteCountEl = card.querySelector('.vote-count');
+                if (!voteCountEl) {
+                    voteCountEl = document.createElement('span');
+                    voteCountEl.className = 'vote-count animate__animated animate__fadeIn';
+                    card.querySelector('h3').appendChild(voteCountEl);
+                }
+                
+                voteCountEl.textContent = `${voteCount} votes`;
+            });
+        }
     </script>
 </body>
 </html>

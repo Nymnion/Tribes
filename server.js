@@ -57,13 +57,32 @@ function processApplicationCommand(username, message) {
     const teamName = parts[1];
     const teamSlogan = parts.slice(2).join(" ");
     
+    // Validate team name
+    if (!teamName || teamName.trim() === "") {
+      // Team name is required
+      return;
+    }
+    
     // Check if user already applied
     const existingCandidate = gameState.candidates.find(c => c.username === username);
+    
+    // Check if team name is already taken by someone else
+    const teamNameTaken = gameState.candidates.some(c => 
+      c.username !== username && 
+      c.teamName.toLowerCase() === teamName.toLowerCase()
+    );
+    
+    if (teamNameTaken) {
+      // Team name is already taken, don't update or add this application
+      // Optionally, you could notify the user that the team name is taken
+      return;
+    }
     
     if (existingCandidate) {
       // Update the existing application
       existingCandidate.teamName = teamName;
       existingCandidate.teamSlogan = teamSlogan;
+      existingCandidate.timestamp = Date.now(); // Update timestamp
     } else {
       // Add new application
       gameState.candidates.push({
@@ -81,14 +100,34 @@ function processApplicationCommand(username, message) {
 
 // Process !vote command during voting phase
 function processVoteCommand(username, message) {
-  // Extract vote from message format: !vote <Candidate Username>
+  // Extract vote from message format: !vote <Candidate Username or Number>
   const parts = message.split(" ");
   
   if (parts.length >= 2) {
-    const voteFor = parts[1];
+    // Check if the user is a team leader (can't vote)
+    const isTeamLeader = gameState.selectedCandidates.some(c => 
+      c.username.toLowerCase() === username.toLowerCase()
+    );
+    
+    if (isTeamLeader) {
+      // Team leaders can't vote
+      return;
+    }
+    
+    const voteInput = parts[1];
+    let voteFor = voteInput;
+    
+    // Check if the vote is a number
+    if (!isNaN(voteInput) && voteInput > 0 && voteInput <= gameState.selectedCandidates.length) {
+      // Convert the number to the corresponding candidate's username
+      const candidateIndex = parseInt(voteInput) - 1;
+      voteFor = gameState.selectedCandidates[candidateIndex].username;
+    }
     
     // Check if the voted for candidate exists in our selected candidates
-    const candidateExists = gameState.selectedCandidates.some(c => c.username.toLowerCase() === voteFor.toLowerCase());
+    const candidateExists = gameState.selectedCandidates.some(c => 
+      c.username.toLowerCase() === voteFor.toLowerCase()
+    );
     
     if (candidateExists) {
       // Record the vote
@@ -150,9 +189,9 @@ io.on("connection", (socket) => {
 function endApplicationsPhase() {
   gameState.phase = "selection";
   
-  // Select 10 random candidates
+  // Select 12 random candidates instead of 10
   const shuffled = [...gameState.candidates].sort(() => 0.5 - Math.random());
-  gameState.selectedCandidates = shuffled.slice(0, Math.min(10, shuffled.length));
+  gameState.selectedCandidates = shuffled.slice(0, Math.min(12, shuffled.length));
   
   io.emit("gameState", gameState);
 }
@@ -183,11 +222,22 @@ function endVotingPhase() {
   const teamLeaders = sortedCandidates.slice(0, Math.min(5, sortedCandidates.length));
   const rejectedLeaders = sortedCandidates.slice(Math.min(5, sortedCandidates.length));
   
+  // Get all team leader usernames (lowercase for comparison)
+  const allLeaderUsernames = gameState.selectedCandidates.map(c => c.username.toLowerCase());
+  
   // Form teams
   gameState.teams = teamLeaders.map(leader => {
-    // Find all users who voted for this leader
+    // Find all users who voted for this leader (excluding other team leaders)
     const teamMembers = Object.entries(gameState.votes)
-      .filter(([voter, vote]) => vote.toLowerCase() === leader.username.toLowerCase())
+      .filter(([voter, vote]) => {
+        // Check if this vote is for this leader
+        const isVoteForThisLeader = vote.toLowerCase() === leader.username.toLowerCase();
+        
+        // Check if voter is not a team leader
+        const isVoterNotLeader = !allLeaderUsernames.includes(voter.toLowerCase());
+        
+        return isVoteForThisLeader && isVoterNotLeader;
+      })
       .map(([voter]) => voter);
     
     return {
@@ -201,11 +251,19 @@ function endVotingPhase() {
   // Form rebels team from rejected leaders and their voters
   gameState.rebels.leaders = rejectedLeaders.map(leader => leader.username);
   
-  // Add all voters for rejected candidates to rebels
+  // Add all voters for rejected candidates to rebels (excluding team leaders)
   const rebelVoters = Object.entries(gameState.votes)
-    .filter(([voter, vote]) => rejectedLeaders.some(leader => 
-      leader.username.toLowerCase() === vote.toLowerCase()
-    ))
+    .filter(([voter, vote]) => {
+      // Check if vote is for a rejected leader
+      const isVoteForRejectedLeader = rejectedLeaders.some(leader => 
+        leader.username.toLowerCase() === vote.toLowerCase()
+      );
+      
+      // Check if voter is not a team leader
+      const isVoterNotLeader = !allLeaderUsernames.includes(voter.toLowerCase());
+      
+      return isVoteForRejectedLeader && isVoterNotLeader;
+    })
     .map(([voter]) => voter);
   
   gameState.rebels.members = rebelVoters;
