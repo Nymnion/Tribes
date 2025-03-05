@@ -3,18 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Chat</title>
+    <title>TWITCH TRIBE</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #chat { max-width: 500px; margin: auto; padding: 10px; border: 1px solid #ccc; }
-        .message { padding: 5px; border-bottom: 1px solid #ddd; }
+        :root {
+            --dark-bg: #1a1a1a;
+            --medium-bg: #2d2d2d;
+            --light-bg: #3a3a3a;
+            --accent: #ff7d1a;
+            --text: #e0e0e0;
+            --text-dim: #9e9e9e;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px 0;
+            background-color: var(--medium-bg);
+            border-radius: 8px;
+            border-bottom: 3px solid var(--accent);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        #chat { 
+            height: 600px; /* Taller display window */
+            overflow-y: auto;
+            background-color: var(--medium-bg);
+            border-radius: 8px;
+            border: 1px solid var(--light-bg);
+            padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .message { 
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background-color: var(--light-bg);
+            border-left: 3px solid var(--accent);
+            transition: background-color 0.2s;
+        }
+        
+        .message:hover {
+            background-color: #454545;
+        }
+        
+        .username {
+            color: var(--accent);
+            font-weight: bold;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        
+        .content {
+            word-break: break-word;
+        }
+        
+        /* Custom scrollbar */
+        #chat::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        #chat::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+            border-radius: 4px;
+        }
+        
+        #chat::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        
+        #chat::-webkit-scrollbar-thumb:hover {
+            background: #ff9641;
+        }
     </style>
 </head>
 <body>
-
-    <h2>Twitch Chat</h2>
-    <div id="chat"></div>
+    <div class="container">
+        <div class="header">
+            <h1>TWITCH TRIBE</h1>
+        </div>
+        
+        <div id="chat"></div>
+    </div>
 
     <script>
         const socket = io();
@@ -23,10 +123,36 @@
         socket.on("chatMessage", (data) => {
             const messageElement = document.createElement("div");
             messageElement.classList.add("message");
-            messageElement.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
+            
+            const sanitizedUser = DOMPurify.sanitize(data.user);
+            const sanitizedMessage = DOMPurify.sanitize(data.message);
+            
+            const usernameElement = document.createElement("span");
+            usernameElement.classList.add("username");
+            usernameElement.textContent = sanitizedUser;
+            
+            const contentElement = document.createElement("span");
+            contentElement.classList.add("content");
+            contentElement.textContent = sanitizedMessage;
+            
+            messageElement.appendChild(usernameElement);
+            messageElement.appendChild(contentElement);
+            
             chatDiv.appendChild(messageElement);
+            
+            // Auto-scroll to newest messages
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            
+            // Add a subtle animation for new messages
+            messageElement.style.opacity = "0";
+            messageElement.style.transform = "translateX(-10px)";
+            messageElement.style.transition = "opacity 0.3s, transform 0.3s";
+            
+            setTimeout(() => {
+                messageElement.style.opacity = "1";
+                messageElement.style.transform = "translateX(0)";
+            }, 10);
         });
     </script>
-
 </body>
 </html>
